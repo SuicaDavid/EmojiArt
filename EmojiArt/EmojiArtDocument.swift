@@ -22,6 +22,8 @@ class EmojiArtDocument: ObservableObject, Hashable, Identifiable {
     static let palette: String = "🍚🍜🌭🍟🍦🍫☕️"
     
     @Published private var emojiArt: EmojiArt = EmojiArt()
+    @Published var steadyStateOffset: CGSize = .zero
+    @Published var steadyStateZoomScale: CGFloat = 1.0
     
     private static let untitled = "EmojiArtDocument.Untitled"
     
