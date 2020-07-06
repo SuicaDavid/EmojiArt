@@ -19,6 +19,7 @@ class EmojiArtDocument: ObservableObject, Hashable, Identifiable {
         hasher.combine(id)
     }
     
+    
     static let palette: String = "🍚🍜🌭🍟🍦🍫☕️"
     
     @Published private var emojiArt: EmojiArt = EmojiArt()
@@ -36,7 +37,24 @@ class EmojiArtDocument: ObservableObject, Hashable, Identifiable {
             print("\(emojiArt.json?.utf8 ?? "nil")")
             UserDefaults.standard.set(emojiArt.json, forKey: defaultKey)
         }
-        FetchBackgroundImageData()
+        fetchBackgroundImageData()
+    }
+    
+    var url: URL? { didSet { self.save(self.emojiArt) }}
+    init(url: URL) {
+        self.id = UUID()
+        self.url = url
+        self.emojiArt = EmojiArt(json: try? Data(contentsOf: url)) ?? EmojiArt()
+        fetchBackgroundImageData()
+        autosaveCancelable = $emojiArt.sink { emojiArt in
+            self.save(emojiArt)
+        }
+    }
+    
+    private func save(_ emojiArt: EmojiArt) {
+        if url != nil {
+            try? emojiArt.json?.write(to: url!)
+        }
     }
     
     @Published private(set) var backgroundImage: UIImage?
@@ -67,12 +85,12 @@ class EmojiArtDocument: ObservableObject, Hashable, Identifiable {
         }
         set {
             emojiArt.backgroundURL = newValue?.imageURL
-            FetchBackgroundImageData()
+            fetchBackgroundImageData()
         }
     }
     
     private var fetchImageCancellable: AnyCancellable?
-    private func FetchBackgroundImageData() {
+    private func fetchBackgroundImageData() {
         backgroundImage = nil
         if let url = self.emojiArt.backgroundURL {
             fetchImageCancellable?.cancel()
