@@ -45,10 +45,10 @@ struct EmojiArtDocumentView: View {
                         Image(systemName: "hour   ").imageScale(.large).spinning()
                     } else {
                         ForEach(self.document.emojis) { emoji in
-                                               Text(emoji.text)
-                                                   .font(animatableWithSize: emoji.fontSize * self.zoomScale)
-                                                   .position(self.position(for: emoji, in: geometry.size))
-                                           }
+                            Text(emoji.text)
+                                .font(animatableWithSize: emoji.fontSize * self.zoomScale)
+                                .position(self.position(for: emoji, in: geometry.size))
+                        }
                     }
                 }
                 .clipped()
@@ -65,9 +65,9 @@ struct EmojiArtDocumentView: View {
                     location = CGPoint(x: location.x / self.zoomScale, y: location.y / self.zoomScale)
                     return self.drop(providers: providers, at: location)
                 }
-                .navigationBarItems(trailing: Button(action: {
+                .navigationBarItems(leading: self.pickImage, trailing: Button(action: {
                     if let url = UIPasteboard.general.url, url != self.document.backgroundURL {
-//                        self.document.backgroundURL = url
+                        //                        self.document.backgroundURL = url
                         self.confirmBackgroundPaste = true
                     } else {
                         self.explainBackgroundPaste = true
@@ -83,7 +83,7 @@ struct EmojiArtDocumentView: View {
                     }
                 }))
             }
-        .zIndex(-1)
+            .zIndex(-1)
         }
         .alert(isPresented: self.$confirmBackgroundPaste) {
             Alert(
@@ -96,6 +96,34 @@ struct EmojiArtDocumentView: View {
             )
         }
     }
+    
+    @State private var showImagePicker: Bool = false
+    @State private var imagePickerSourceType = UIImagePickerController.SourceType.photoLibrary
+    private var pickImage: some View {
+        HStack {
+            Image(systemName: "photo").imageScale(.large).foregroundColor(.accentColor).onTapGesture {
+                self.imagePickerSourceType = .photoLibrary
+                self.showImagePicker = true
+            }
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Image(systemName: "camera").imageScale(.large).foregroundColor(.accentColor).onTapGesture {
+                    self.imagePickerSourceType = .camera
+                    self.showImagePicker = true
+                }
+            }
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(sourceType: self.imagePickerSourceType) { image in
+                if image != nil {
+                    DispatchQueue.main.async {
+                        self.document.backgroundURL = image!.storeInFilesystem()
+                    }
+                }
+                self.showImagePicker = false
+            }
+        }
+    }
+    
     @State private var explainBackgroundPaste = false
     @State private var confirmBackgroundPaste = false
     
@@ -114,12 +142,12 @@ struct EmojiArtDocumentView: View {
             .updating($gesturePanOffset) { latestDragGestureValue, gesturePanOffset, transaction in
                 gesturePanOffset = latestDragGestureValue.translation / self.zoomScale
         }
-            .onEnded { finalDragGestureValue in
-                self.document.steadyStateOffset = self.document.steadyStateOffset +  (finalDragGestureValue.translation / self.zoomScale)
+        .onEnded { finalDragGestureValue in
+            self.document.steadyStateOffset = self.document.steadyStateOffset +  (finalDragGestureValue.translation / self.zoomScale)
         }
     }
     
-   
+    
     @GestureState private var gestureZoomScale: CGFloat = 1.0
     
     private var zoomScale: CGFloat {
@@ -131,8 +159,8 @@ struct EmojiArtDocumentView: View {
             .updating($gestureZoomScale) { lastestGestureScale, gestureZoomScale, transaction in
                 gestureZoomScale = lastestGestureScale
         }
-            .onEnded { finalGestureScale in
-                self.document.steadyStateZoomScale *= finalGestureScale
+        .onEnded { finalGestureScale in
+            self.document.steadyStateZoomScale *= finalGestureScale
         }
     }
     
